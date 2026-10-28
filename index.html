@@ -237,7 +237,7 @@
   // ---------- state ----------
   const settings = Object.assign({ showGrand: true }, store.get(KEY_SETTINGS, {}));
   let history = store.get(KEY_HISTORY, []);
-  const newItem = () => ({ name: '', qty: '2', unit: 'boxes', size: '20', measure: 'sqft', rate: '', tax: '18', qtyInTitle: false });
+  const newItem = () => ({ name: '', qty: '2', unit: 'box', size: '20', measure: 'sqft', rate: '', tax: '18', qtyInTitle: false });
   // a filled-in example so the preview works straight away
   const starterDraft = (header = '', footer = '') => ({
     customer: 'Payal - Gym flooring', header, footer,
@@ -316,7 +316,7 @@
         </div>
         <div class="fields">
           <div><label>Quantity</label><input data-k="qty" type="number" step="any" min="0" inputmode="decimal" placeholder="2" value="${esc(it.qty)}"></div>
-          <div><label>Unit</label><input data-k="unit" placeholder="boxes / rolls" value="${esc(it.unit)}"></div>
+          <div><label>Unit</label><input data-k="unit" placeholder="box / roll" value="${esc(it.unit)}"></div>
           <div><label>Per unit</label><input data-k="size" type="number" step="any" min="0" inputmode="decimal" placeholder="20" value="${esc(it.size)}"></div>
           <div><label>Measure</label><input data-k="measure" placeholder="sqft / sqm" value="${esc(it.measure)}"></div>
           <div><label>Rate /-</label><input data-k="rate" type="number" step="any" min="0" inputmode="decimal" placeholder="e.g. 60" value="${esc(it.rate)}"></div>
