@@ -238,7 +238,14 @@
   const settings = Object.assign({ showGrand: true }, store.get(KEY_SETTINGS, {}));
   let history = store.get(KEY_HISTORY, []);
   const newItem = () => ({ name: '', qty: '1', unit: 'boxes', size: '20', measure: 'sqft', rate: '', tax: '18', qtyInTitle: false });
-  let draft = store.get(KEY_DRAFT, null) || { customer: '', header: '', footer: '', items: [newItem()] };
+  // a filled-in example so the preview works straight away
+  const starterDraft = (header = '', footer = '') => ({
+    customer: 'Payal - Gym flooring', header, footer,
+    items: [{ ...newItem(), name: '20mm rubber tiles', rate: '60' }]
+  });
+  let draft = store.get(KEY_DRAFT, null);
+  const isBlank = (d) => !d.customer.trim() && d.items.every(it => !it.name.trim() && !num(it.rate));
+  if (!draft || isBlank(draft)) draft = starterDraft(draft?.header, draft?.footer);
 
   // ---------- calculation & message ----------
   function calc(it) {
@@ -465,8 +472,8 @@
   };
   $('#clearAll').onclick = () => {
     if (!confirm('Clear all products and start a new quote?')) return;
-    draft = { customer: '', header: draft.header, footer: draft.footer, items: [newItem()] };
-    $('#customer').value = ''; renderItems(); renderPreview();
+    draft = starterDraft(draft.header, draft.footer);
+    $('#customer').value = draft.customer; renderItems(); renderPreview();
   };
   $('#copyBtn').onclick = async () => {
     const msg = commit(); if (!msg) return;
