@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quote Builder</title>
+<style>
+  :root {
+    --bg: #f4f5f2;
+    --panel: #ffffff;
+    --ink: #1d2320;
+    --muted: #6b746f;
+    --line: #dfe3df;
+    --accent: #128c4a;
+    --accent-ink: #ffffff;
+    --chat-bg: #e9e2d6;
+    --bubble: #d9fdd3;
+    --danger: #c0392b;
+    --field: #fafbf9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111614;
+      --panel: #1a201d;
+      --ink: #e7ece9;
+      --muted: #8f9a94;
+      --line: #2c3430;
+      --accent: #25b864;
+      --accent-ink: #06210f;
+      --chat-bg: #0b141a;
+      --bubble: #005c4b;
+      --danger: #ff6b5b;
+      --field: #141917;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  .tabs { display: flex; gap: 4px; }
+  .tab {
+    border: 1px solid var(--line); background: transparent; color: var(--ink);
+    padding: 7px 14px; border-radius: 999px; cursor: pointer; font: inherit;
+  }
+  .tab.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  main { padding: 20px; max-width: 1300px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } main { padding: 16px; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card + .card { margin-top: 16px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, textarea, select {
+    width: 100%; font: inherit; color: var(--ink); background: var(--field);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  textarea { resize: vertical; min-height: 40px; }
+  .item { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; position: relative; }
+  .item-head { display: flex; gap: 10px; align-items: end; margin-bottom: 10px; }
+  .item-head .name { flex: 1; }
+  .fields { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  @media (max-width: 600px) { .fields { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .item-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .item-foot b { color: var(--ink); }
+  .check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; margin: 0; }
+  .check input { width: auto; }
+  button.btn {
+    font: inherit; border-radius: 8px; padding: 9px 14px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  }
+  button.btn:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.icon { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 6px; }
+  button.icon:hover { color: var(--danger); background: var(--field); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sticky { position: sticky; top: 16px; }
+  .chat { background: var(--chat-bg); border-radius: 10px; padding: 16px; min-height: 160px; }
+  .bubble {
+    background: var(--bubble); border-radius: 8px 0 8px 8px; padding: 8px 10px; margin-left: auto;
+    max-width: 100%; width: fit-content; white-space: pre-wrap; word-wrap: break-word;
+    font-size: 14.5px; box-shadow: 0 1px 1px rgba(0,0,0,.12);
+  }
+  .bubble:empty::before { content: "Add a product to see the message…"; color: var(--muted); }
+  .totals { display: flex; justify-content: space-between; margin: 12px 0; font-size: 14px; color: var(--muted); }
+  .totals b { color: var(--ink); font-size: 18px; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px;
+    opacity: 0; transition: .2s; pointer-events: none; z-index: 10;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .hidden { display: none !important; }
+  /* History */
+  .hist-tools { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .hist-tools input { flex: 1; min-width: 200px; }
+  #deskHistory { margin-top: 28px; }
+  @media (min-width: 901px) { .tab[data-view=history] { display: none; } }
+  .entry { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; background: var(--panel); }
+  .entry summary {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 12px 14px; cursor: pointer; list-style: none;
+  }
+  .entry summary::-webkit-details-marker { display: none; }
+  .entry summary::after { content: "›"; color: var(--muted); font-size: 18px; line-height: 1; transition: transform .15s; }
+  .entry[open] summary::after { transform: rotate(90deg); }
+  .entry summary .amt { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .entry-body { padding: 0 14px 12px; }
+  .entry-date { font-size: 13px; color: var(--muted); }
+  .entry pre { white-space: pre-wrap; font: 13.5px/1.45 inherit; font-family: inherit; margin: 8px 0; background: var(--field); padding: 8px 10px; border-radius: 8px; }
+  .entry .row { justify-content: flex-end; }
+  .entry .row button.btn { padding: 6px 10px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); text-align: center; padding: 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Quote Builder</h1>
+  <div class="tabs">
+    <button class="tab active" data-view="builder">Builder</button>
+    <button class="tab" data-view="history">History</button>
+    <button class="tab" data-view="prices">Price list</button>
+  </div>
+</header>
+
+<main>
+  <!-- BUILDER -->
+  <section id="view-builder">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <label for="customer">Customer / reference (for history only)</label>
+          <input id="customer" placeholder="e.g. Ramesh – Gym flooring">
+        </div>
+
+        <div class="card">
+          <h2>Products</h2>
+          <div id="items"></div>
+          <div class="row">
+            <button class="btn" id="addItem">+ Add product</button>
+            <button class="btn" id="clearAll">Clear all</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Message options</h2>
+          <div class="two" style="margin-bottom:10px">
+            <div>
+              <label for="headerText">Text above (optional)</label>
+              <textarea id="headerText" rows="2" placeholder="e.g. Hi, please find the quote below:"></textarea>
+            </div>
+            <div>
+              <label for="footerText">Text below (optional)</label>
+              <textarea id="footerText" rows="2" placeholder="e.g. Delivery extra. Valid 7 days."></textarea>
+            </div>
+          </div>
+          <label class="check"><input type="checkbox" id="showGrand"> Add grand total line (when more than one product)</label>
+        </div>
+      </div>
+
+      <div class="sticky">
+        <div class="card">
+          <h2>WhatsApp preview</h2>
+          <div class="chat"><div class="bubble" id="preview"></div></div>
+          <div class="totals"><span>Grand total (incl. tax)</span><b id="grandTotal">0/-</b></div>
+          <div class="row">
+            <button class="btn primary" id="copyBtn" style="flex:1">Copy message</button>
+            <button class="btn" id="waBtn">Open WhatsApp</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Copying saves the quote to History automatically.</p>
+        </div>
+      </div>
+    </div>
+    <div id="deskHistory"></div>
+  </section>
+
+  <!-- HISTORY: lives in its own tab on mobile, below the builder on desktop -->
+  <section id="view-history" class="hidden">
+    <div id="historyPanel">
+      <h2>History</h2>
+      <div class="hist-tools">
+        <input id="histSearch" placeholder="Search customer, product, price…">
+      </div>
+      <div id="histList"></div>
+    </div>
+  </section>
+
+  <!-- PRICE LIST -->
+  <section id="view-prices" class="hidden">
+    <div class="card">
+      <h2>Prices quoted so far (latest first)</h2>
+      <input id="priceSearch" placeholder="Filter by product…" style="margin-bottom:12px">
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Product</th><th class="num">Last rate</th><th class="num">Low</th><th class="num">High</th><th class="num">Times</th><th>Last quoted</th><th>Customer</th></tr></thead>
+        <tbody id="priceBody"></tbody>
+      </table></div>
+    </div>
+  </section>
+</main>
+
+<datalist id="productNames"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const KEY_HISTORY = 'qb.history.v1';
+  const KEY_DRAFT = 'qb.draft.v1';
+  const KEY_SETTINGS = 'qb.settings.v1';
+
+  const $ = (s) => document.querySelector(s);
+  const store = {
+    get(k, fallback) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  // ---------- helpers ----------
+  const num = (v) => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+  const fmt = (n) => {
+    // trims trailing zeros: 167 -> "167", 63.50 -> "63.5", 107.640 -> "107.64"
+    return String(Math.round(n * 100) / 100);
+  };
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const toast = (msg) => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800); };
+  const when = (ts) => new Date(ts).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+  // ---------- state ----------
+  const settings = Object.assign({ showGrand: true }, store.get(KEY_SETTINGS, {}));
+  let history = store.get(KEY_HISTORY, []);
+  const newItem = () => ({ name: '', qty: '1', unit: 'boxes', size: '20', measure: 'sqft', rate: '', tax: '18', qtyInTitle: false });
+  let draft = store.get(KEY_DRAFT, null) || { customer: '', header: '', footer: '', items: [newItem()] };
+
+  // ---------- calculation & message ----------
+  function calc(it) {
+    const qty = num(it.qty), size = num(it.size), rate = num(it.rate), tax = num(it.tax);
+    const area = size > 0 ? qty * size : qty;
+    const base = area * rate;
+    const total = Math.round(base * (1 + tax / 100));
+    return { qty, size, rate, tax, area, base, total };
+  }
+  function itemText(it) {
+    if (!it.name.trim() && !num(it.qty)) return '';
+    const c = calc(it);
+    const units = (it.unit || '').trim();
+    const qtyPart = `${fmt(c.qty)}${units ? ' ' + units : ''}`;
+    const title = it.name.trim() + (it.qtyInTitle ? ` - ${qtyPart}` : '');
+    const parts = [qtyPart];
+    if (c.size > 0) parts.push(`${fmt(c.size)} ${it.measure.trim()} per ${(it.unit || '').trim()}`.replace(/\s+/g, ' ').trim());
+    parts.push(`${fmt(c.rate)}/-`);
+    const line = parts.join(' * ') + (c.tax > 0 ? ' + Tax' : '') + ` = ${c.total}/-`;
+    return `${title}\n${line}`;
+  }
+  function validItems() { return draft.items.filter(it => it.name.trim() && num(it.qty) > 0); }
+  function grandTotal() { return validItems().reduce((s, it) => s + calc(it).total, 0); }
+  function buildMessage() {
+    const blocks = validItems().map(itemText);
+    if (!blocks.length) return '';
+    const out = [];
+    if (draft.header.trim()) out.push(draft.header.trim());
+    out.push(blocks.join('\n\n'));
+    if (settings.showGrand && blocks.length > 1) out.push(`Total = ${grandTotal()}/-`);
+    if (draft.footer.trim()) out.push(draft.footer.trim());
+    return out.join('\n\n');
+  }
+
+  // ---------- product memory (autofill from last quote) ----------
+  function productIndex() {
+    const map = new Map();
+    // history is newest-first, so the first one seen is the latest
+    for (const h of history) for (const it of h.items) {
+      const k = it.name.trim().toLowerCase();
+      if (!k) continue;
+      const r = num(it.rate);
+      if (!map.has(k)) map.set(k, { name: it.name.trim(), last: it, lastTs: h.ts, customer: h.customer, min: r, max: r, count: 0 });
+      const p = map.get(k);
+      p.min = Math.min(p.min, r); p.max = Math.max(p.max, r); p.count++;
+    }
+    return map;
+  }
+  function refreshDatalist() {
+    $('#productNames').innerHTML = [...productIndex().values()].map(p => `<option value="${esc(p.name)}">`).join('');
+  }
+
+  // ---------- render builder ----------
+  function saveDraft() { store.set(KEY_DRAFT, draft); }
+  function renderItems() {
+    const wrap = $('#items');
+    wrap.innerHTML = '';
+    draft.items.forEach((it, i) => {
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.innerHTML = `
+        <div class="item-head">
+          <div class="name">
+            <label>Product name</label>
+            <input data-k="name" list="productNames" placeholder="e.g. 10mm rubber tiles" value="${esc(it.name)}">
+          </div>
+          <button class="icon" title="Remove" data-act="remove">✕</button>
+        </div>
+        <div class="fields">
+          <div><label>Quantity</label><input data-k="qty" type="number" step="any" min="0" inputmode="decimal" placeholder="1" value="${esc(it.qty)}"></div>
+          <div><label>Unit</label><input data-k="unit" placeholder="boxes / rolls" value="${esc(it.unit)}"></div>
+          <div><label>Per unit</label><input data-k="size" type="number" step="any" min="0" inputmode="decimal" placeholder="20" value="${esc(it.size)}"></div>
+          <div><label>Measure</label><input data-k="measure" placeholder="sqft / sqm" value="${esc(it.measure)}"></div>
+          <div><label>Rate /-</label><input data-k="rate" type="number" step="any" min="0" inputmode="decimal" placeholder="e.g. 60" value="${esc(it.rate)}"></div>
+          <div><label>Tax %</label><input data-k="tax" type="number" step="any" min="0" inputmode="decimal" placeholder="18" value="${esc(it.tax)}"></div>
+        </div>
+        <div class="item-foot">
+          <label class="check"><input type="checkbox" data-k="qtyInTitle" ${it.qtyInTitle ? 'checked' : ''}> Show qty next to name</label>
+          <span data-summary></span>
+        </div>`;
+      el.addEventListener('input', (e) => {
+        const k = e.target.dataset.k; if (!k) return;
+        it[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        if (k === 'name') autofill(it, el);
+        update(el, it);
+      });
+      el.querySelector('[data-act=remove]').onclick = () => {
+        draft.items.splice(i, 1);
+        if (!draft.items.length) draft.items.push(newItem());
+        renderItems(); renderPreview();
+      };
+      wrap.appendChild(el);
+      updateSummary(el, it);
+    });
+  }
+  function autofill(it, el) {
+    const p = productIndex().get(it.name.trim().toLowerCase());
+    if (!p) return;
+    for (const k of ['unit', 'size', 'measure', 'rate', 'tax']) {
+      it[k] = p.last[k];
+      el.querySelector(`[data-k=${k}]`).value = p.last[k];
+    }
+    it.qtyInTitle = !!p.last.qtyInTitle;
+    el.querySelector('[data-k=qtyInTitle]').checked = it.qtyInTitle;
+    toast(`Filled from last quote: ${fmt(num(p.last.rate))}/- (${when(p.lastTs)})`);
+  }
+  function updateSummary(el, it) {
+    const c = calc(it);
+    const area = c.size > 0 ? `${fmt(c.area)} ${esc(it.measure)} · ` : '';
+    el.querySelector('[data-summary]').innerHTML =
+      `${area}${fmt(c.base)} + ${fmt(c.tax)}% = <b>${c.total}/-</b>`;
+  }
+  function update(el, it) { updateSummary(el, it); renderPreview(); }
+  function renderPreview() {
+    $('#preview').textContent = buildMessage();
+    $('#grandTotal').textContent = grandTotal() + '/-';
+    saveDraft();
+  }
+
+  // ---------- history ----------
+  function commit() {
+    const message = buildMessage();
+    if (!message) { toast('Nothing to copy yet'); return null; }
+    const last = history[0];
+    if (!(last && last.message === message && last.customer === draft.customer.trim())) {
+      history.unshift({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        ts: Date.now(),
+        customer: draft.customer.trim(),
+        items: JSON.parse(JSON.stringify(validItems())),
+        total: grandTotal(),
+        message
+      });
+      store.set(KEY_HISTORY, history);
+      refreshDatalist(); renderHistory();
+    }
+    return message;
+  }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy'); ta.remove(); return ok;
+    }
+  }
+  function renderHistory() {
+    const q = $('#histSearch').value.trim().toLowerCase();
+    const list = history.filter(h => !q || (h.customer + ' ' + h.message).toLowerCase().includes(q));
+    $('#histList').innerHTML = list.length ? list.map(h => `
+      <details class="entry" data-id="${h.id}">
+        <summary><b>${esc(h.customer || 'No reference')}</b><span class="amt">${h.total}/-</span></summary>
+        <div class="entry-body">
+          <div class="entry-date">${when(h.ts)}</div>
+          <pre>${esc(h.message)}</pre>
+          <div class="row">
+            <button class="btn" data-act="copy">Copy</button>
+            <button class="btn" data-act="load">Load into builder</button>
+            <button class="btn" data-act="del" style="color:var(--danger)">Delete</button>
+          </div>
+        </div>
+      </details>`).join('') : `<div class="empty">${history.length ? 'No matches.' : 'No quotes yet. Copy a message in the Builder and it will appear here.'}</div>`;
+  }
+  $('#histList').addEventListener('click', async (e) => {
+    const act = e.target.dataset.act; if (!act) return;
+    const id = e.target.closest('.entry').dataset.id;
+    const h = history.find(x => x.id === id); if (!h) return;
+    if (act === 'copy') { await copyText(h.message); toast('Copied'); }
+    if (act === 'load') {
+      draft.customer = h.customer;
+      draft.items = JSON.parse(JSON.stringify(h.items));
+      $('#customer').value = draft.customer;
+      renderItems(); renderPreview(); show('builder'); window.scrollTo({ top: 0, behavior: 'smooth' });
+      toast('Loaded — edit and copy again');
+    }
+    if (act === 'del' && confirm('Delete this quote from history?')) {
+      history = history.filter(x => x.id !== id);
+      store.set(KEY_HISTORY, history); renderHistory(); refreshDatalist();
+    }
+  });
+  $('#histSearch').addEventListener('input', renderHistory);
+
+  function renderPrices() {
+    const q = $('#priceSearch').value.trim().toLowerCase();
+    const rows = [...productIndex().values()].filter(p => !q || p.name.toLowerCase().includes(q));
+    $('#priceBody').innerHTML = rows.length ? rows.map(p => `
+      <tr><td>${esc(p.name)}</td><td class="num"><b>${fmt(num(p.last.rate))}</b></td><td class="num">${fmt(p.min)}</td><td class="num">${fmt(p.max)}</td>
+      <td class="num">${p.count}</td><td>${when(p.lastTs)}</td><td>${esc(p.customer || '—')}</td></tr>`).join('')
+      : `<tr><td colspan="7" class="empty">No prices yet.</td></tr>`;
+  }
+  $('#priceSearch').addEventListener('input', renderPrices);
+
+  // on desktop the history panel sits below the builder; on mobile it moves back into its tab
+  const desktop = matchMedia('(min-width: 901px)');
+  function placeHistory() {
+    (desktop.matches ? $('#deskHistory') : $('#view-history')).appendChild($('#historyPanel'));
+    if (desktop.matches && !$('#view-history').classList.contains('hidden')) show('builder');
+  }
+  desktop.addEventListener('change', placeHistory);
+
+  // ---------- wiring ----------
+  function show(view) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+    ['builder', 'history', 'prices'].forEach(v => $('#view-' + v).classList.toggle('hidden', v !== view));
+    if (view === 'history') renderHistory();
+    if (view === 'prices') renderPrices();
+  }
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => show(t.dataset.view));
+
+  $('#customer').value = draft.customer;
+  $('#headerText').value = draft.header;
+  $('#footerText').value = draft.footer;
+  $('#showGrand').checked = settings.showGrand;
+
+  $('#customer').oninput = (e) => { draft.customer = e.target.value; saveDraft(); };
+  $('#headerText').oninput = (e) => { draft.header = e.target.value; renderPreview(); };
+  $('#footerText').oninput = (e) => { draft.footer = e.target.value; renderPreview(); };
+  $('#showGrand').onchange = (e) => { settings.showGrand = e.target.checked; store.set(KEY_SETTINGS, settings); renderPreview(); };
+
+  $('#addItem').onclick = () => {
+    draft.items.push(newItem()); renderItems(); renderPreview();
+    const inputs = document.querySelectorAll('#items [data-k=name]'); inputs[inputs.length - 1].focus();
+  };
+  $('#clearAll').onclick = () => {
+    if (!confirm('Clear all products and start a new quote?')) return;
+    draft = { customer: '', header: draft.header, footer: draft.footer, items: [newItem()] };
+    $('#customer').value = ''; renderItems(); renderPreview();
+  };
+  $('#copyBtn').onclick = async () => {
+    const msg = commit(); if (!msg) return;
+    toast((await copyText(msg)) ? 'Copied — saved to history' : 'Could not copy, select the text manually');
+  };
+  $('#waBtn').onclick = () => {
+    const msg = commit(); if (!msg) return;
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  };
+
+  refreshDatalist();
+  renderItems();
+  renderPreview();
+  placeHistory();
+  renderHistory();
+})();
+</script>
+</body>
+</html>
